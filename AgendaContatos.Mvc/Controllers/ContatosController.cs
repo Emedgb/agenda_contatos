@@ -1,8 +1,13 @@
-﻿using AgendaContatos.Mvc.Models;
+﻿using AgendaContatos.Data.Entities;
+using AgendaContatos.Data.Repositories;
+using AgendaContatos.Mvc.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace AgendaContatos.Mvc.Controllers
 {
+    [Authorize]
     public class ContatosController : Controller
     {
         //ROTA: /Contatos/Cadastro
@@ -17,7 +22,29 @@ namespace AgendaContatos.Mvc.Controllers
             //verificar se os campos da model passaram nas validações
             if (ModelState.IsValid)
             {
+                try
+                {
+                    var authenticationModel = ObterUsuarioAutenticado();
 
+                    var contato = new Contato();
+
+                    contato.IdContato = Guid.NewGuid();
+                    contato.Nome = model.Nome;
+                    contato.Email = model.Email;
+                    contato.Telefone = model.Telefone;
+                    contato.DataNascimento = DateTime.Parse(model.DataNascimento);
+                    contato.IdUsuario = authenticationModel.IdUsuario;
+
+                    var contatoRepository = new ContatoRepository();
+                    contatoRepository.Create(contato);
+
+                    TempData["Mensagem"] = $"Contato {contato.Nome}, cadastrado com sucesso!";
+                    ModelState.Clear(); //limpar os campos do formulário
+                }
+                catch (Exception e)
+                {
+                    TempData["Mensagem"] = $"Falha ao cadastrar contato: {e.Message}.";
+                }
             }
 
             return View();
@@ -44,6 +71,12 @@ namespace AgendaContatos.Mvc.Controllers
             }
 
             return View();
+        }
+
+        public AuthenticationModel ObterUsuarioAutenticado()
+        {
+            var json = User.Identity.Name; //lendo o conteudo do Cookie de autenticação do AspNet
+            return JsonConvert.DeserializeObject<AuthenticationModel>(json);
         }
     }
 }

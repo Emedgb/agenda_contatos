@@ -1,5 +1,11 @@
-﻿@{
+﻿@using AgendaContatos.Mvc.Models
+@using Newtonsoft.Json;
+
+@{
     Layout = null;
+
+    var json = User.Identity.Name; //dados gravados no Cookie de autenticação do AspNet
+    var authenticationModel = JsonConvert.DeserializeObject<AuthenticationModel>(json);
 }
 
 <!DOCTYPE html>
@@ -31,7 +37,29 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/Contatos/Consulta">Consultar Contatos</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Usuarios/Dados">Dados do Usuário</a>
+                    </li>
                 </ul>
+                <form class="d-flex">
+
+                    <div class="text-white">
+                        <div>
+                            <small>
+                                <strong>@authenticationModel.Nome</strong>
+                            </small>
+                        </div>
+                        <div style="margin-top: -10px!important">
+                            <small>@authenticationModel.Email</small>
+                        </div>
+                    </div>
+
+                    &nbsp;&nbsp;&nbsp;
+
+                    <a href="/Account/Logout" class="btn btn-outline-light btn-sm">
+                        Sair da Agenda
+                    </a>
+                </form>
             </div>
         </div>
     </nav>
