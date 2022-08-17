@@ -1,6 +1,8 @@
 ﻿using AgendaContatos.Data.Entities;
 using AgendaContatos.Data.Repositories;
+using AgendaContatos.Messages;
 using AgendaContatos.Mvc.Models;
+using Bogus;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -131,8 +133,8 @@ namespace AgendaContatos.Mvc.Controllers
                     //verificar se o usuário foi encontrado
                     if (usuario != null)
                     {
-                        //FALTA IMPLEMENTAR O ENVIO DO EMAIL!!
-                        TempData["Mensagem"] = $"Olá {usuario.Nome}, você receberá um email para cadastrar uma nova senha.";
+                        RecuperarSenhaDoUsuario(usuario);
+                        TempData["Mensagem"] = $"Olá {usuario.Nome}, você receberá um email contendo uma nova senha de acesso.";
                     }
                     else
                     {
@@ -159,7 +161,7 @@ namespace AgendaContatos.Mvc.Controllers
         }
 
         //método para gravar o Cookie de autenticação do usuário
-        public void GravarCookieDeAutenticacao(string json)
+        private void GravarCookieDeAutenticacao(string json)
         {
             //criando o conteudo que será gravado no Cookie de autenticação do AspNet
             var claimsIdentity = new ClaimsIdentity
@@ -171,12 +173,38 @@ namespace AgendaContatos.Mvc.Controllers
         }
 
         //método para apagar o Cookie de autenticação do usuário
-        public void RemoverCookieDeAutenticacao()
+        private void RemoverCookieDeAutenticacao()
         {
             HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         }
+
+        //método para fazer a recuperação da senha do usuário
+        private void RecuperarSenhaDoUsuario(Usuario usuario)
+        {
+            //gerando uma nova senha para o usuário da aplicação
+            var faker = new Faker();
+            var novaSenha = faker.Internet.Password(10);
+
+            //criando os parametros para envio do email
+            var mailTo = usuario.Email;
+            var subject = "Recuperação de senha de acesso - Agenda de Contatos";
+            var body = $@"
+                <div>
+                    <p>Olá {usuario.Nome}, uma nova senha foi gerada com sucesso.</p>
+                    <p>Utilize a senha <strong>{novaSenha}</strong> para acessar sua conta.</p>
+                    <p>Depois de acessar, você poderá atualizar esta senha para outra de sua preferência.</p>
+                    <p>Att,</p>
+                    <p>Equipe Agenda de Contatos</p>
+                </div>
+            ";
+
+            //enviando a senha para o email do usuário
+            var emailMessage = new EmailMessage();
+            emailMessage.SendMail(mailTo, subject, body);
+
+            //atualizando a senha do usuário no banco de dados
+            var usuarioRepository = new UsuarioRepository();
+            usuarioRepository.Update(usuario.IdUsuario, novaSenha);
+        }
     }
 }
-
-
-
